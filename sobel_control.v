@@ -150,18 +150,18 @@ dffre #(IOBUF_ADDR_WIDTH)               buf_write_offset_r (                    
 // *** Row address increment ***
 // The value of this signal specifies the width of an output row.
 // Insert your code here.
-assign      buf_write_row_incr                  = 'h0;
+assign      buf_write_row_incr                  = control_n_cols - 'h2;
 
 // *** Column strip increment ***
 // The value of this signal specifies the start column of the next column strip.
 // Insert your code here.
-assign      next_col_strip                      = 'h0;
+assign      next_col_strip                      = col_strip + `NUM_SOBEL_ACCELERATORS;
 
 // *** Column strip maximum ***
 // The value of this signal is the termination condition.
 // What is the highest possible value of col_strip that indicates there are still more input pixels to process?
 // Insert your code here.
-assign      max_col_strip                       = 'h0;
+assign      max_col_strip                       = control_n_cols - `NUM_SOBEL_ACCELERATORS;
 
 generate
 for (i = 0; i < `NUM_SOBEL_ACCELERATORS; i = i + 1) begin: sobel_write_en
@@ -169,8 +169,7 @@ for (i = 0; i < `NUM_SOBEL_ACCELERATORS; i = i + 1) begin: sobel_write_en
 // *** Write enable ***
 // If pixel_write_en[i] is set to 1, this tells the memory system that the current pixel at index i from the Sobel accelerator contains valid data to be written.
 // Make sure to only set it to 1 when the Sobel accelerator is producing valid data at that pixel position.
-assign      pixel_write_en[i]                   = 'h0;
-
+assign      pixel_write_en[i]                   = (state == STATE_PROCESSING_CALC || state == STATE_PROCESSING_CALC_LAST) && (buf_write_en);
 end
 endgenerate
 
@@ -211,7 +210,7 @@ always @ (*) begin
         STATE_PROCESSING_CALC: begin
             if (go) begin
                     // if we reach the last row to load and compute
-                if ((row_counter + 1) >= (control_n_rows - 'h2))
+                    if ((row_counter + 'h1) >= (control_n_rows - 'h2))
                             state_next = STATE_PROCESSING_LOADSS_LAST;
                     else
                             state_next = STATE_PROCESSING_LOADSS;
@@ -279,7 +278,7 @@ end
 // Insert your code where indicated.
 always @ (*) begin
     // What is the correct default behavior? Place your command here.
-    row_op                                      = 'h0;
+    row_op                                      = `SOBEL_ROW_OP_HOLD;
 
     case (state)
         STATE_WAIT: begin
@@ -451,7 +450,7 @@ always @ (*) begin
 
         STATE_PROCESSING_CALC_LAST: begin
             // What happens in this state? Insert your code here. If nothing changes, you can remove this case completely.
-            col_strip_next                      = col_strip + 'h1;
+            col_strip_next                      = col_strip + `NUM_SOBEL_ACCELERATORS;
         end
 
         STATE_PROCESSING_LOADSS_LAST: begin
@@ -489,7 +488,7 @@ always @ (*) begin
     case (state)
         STATE_WAIT: begin
             if (go) begin
-                buf_read_offset_next            = (control_n_cols) + (col_strip - 'h1);
+                buf_read_offset_next            = control_n_cols + (col_strip - 'h1);
             end if (~go) begin
                 buf_read_offset_next            = 'h0;
           end
@@ -520,7 +519,7 @@ always @ (*) begin
              // into the registers, starting at row 0, so I just do col_strip
              // + N
              if ((col_strip + (`NUM_SOBEL_ACCELERATORS + `NUM_SOBEL_ACCELERATORS) - 'h1) < (control_n_cols - 'h2)) begin
-                buf_read_offset_next = control_n_cols +  (col_strip + (`NUM_SOBEL_ACCELERATORS - 'h1));
+                buf_read_offset_next = control_n_cols +  (col_strip + `NUM_SOBEL_ACCELERATORS - 'h1);
              end else begin
                 // we are officially done!
                 buf_read_offset_next = 'h0;
@@ -549,7 +548,6 @@ always @ (*) begin
         end
     endcase
 end
-
 // *** Write address/offset calculation (combinational circuitry) ***
 // The job of this block is to calculate the correct write address to send to memory.
 // The write address currently being sent to memory is "buf_write_offset", so here we calculate what should be next.
@@ -675,5 +673,4 @@ always @ (*) begin
 end
 
 endmodule
--- INSERT --                                                                                                                                                                                                                                                                              678,10        Bot
-
+                                 
