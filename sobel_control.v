@@ -84,8 +84,6 @@ assign      sctl2swt_write_addr                 = buf_write_offset;
 assign      sctl2srow_row_op                    = row_op;
 assign      sctl2stop_status                    = {{STATUS_REG_WIDTH-STATE_WIDTH-2{1'b0}}, state, (state == STATE_ERROR), (state == STATE_PROCESSING_DONE)};
 assign      sctl2swt_write_en                   = go ? pixel_write_en : 'h0;
-assign control_n_rows = stop2sctl_image_n_rows;
-assign control_n_cols = stop2sctl_image_n_cols;
 // Registers
 dffr #(STATE_WIDTH)                     state_r (                               // main state register
     .clk                                        (clk),
@@ -282,7 +280,7 @@ always @ (*) begin
     case (state)
         STATE_WAIT: begin
             // What happens in this state? Insert your code here. If nothing changes, you can remove this case completely.
-            row_op                              = `SOBEL_ROW_OP_HOLD;
+            row_op                              = `SOBEL_ROW_OP_SHIFT_ROW;
         end
         
         STATE_LOADING_1: begin
@@ -511,14 +509,14 @@ always @ (*) begin
         end
         
         STATE_PROCESSING_LOADSS: begin
-	    buf_read_offset_next = ((row_counter + 'h2) * control_n_cols);
+	    buf_read_offset_next = ((row_counter + 'h2) * control_n_cols) + (col_strip - 'h1);
 	end
         
         STATE_PROCESSING_CALC_LAST: begin
              // if there's still more columns to process, start loading 2
 	     // into the registers, starting at row 0, so I just do col_strip
 	     // + N
-	     if ((col_strip + (`NUM_SOBEL_ACCELERATORS + `NUM_SOBEL_ACCELERATORS) - 'h1) < (control_n_cols - 'h2)) begin
+	     if ((col_strip + (`NUM_SOBEL_ACCELERATORS + `NUM_SOBEL_ACCELERATORS) - 'h1) <= (control_n_cols - 'h2)) begin
                 buf_read_offset_next = control_n_cols +  (col_strip + `NUM_SOBEL_ACCELERATORS - 'h1);
 	     end else begin
 		// we are officially done!
@@ -528,7 +526,7 @@ always @ (*) begin
         
         STATE_PROCESSING_LOADSS_LAST: begin
 	     // If there's still more columns to process, start loading 1
- 	     if ((col_strip + (`NUM_SOBEL_ACCELERATORS + `NUM_SOBEL_ACCELERATORS) - 'h1) < (control_n_cols - 'h2)) begin
+ 	     if ((col_strip + (`NUM_SOBEL_ACCELERATORS + `NUM_SOBEL_ACCELERATORS) - 'h1) <= (control_n_cols - 'h2)) begin
                 buf_read_offset_next = (col_strip + `NUM_SOBEL_ACCELERATORS - 'h1);
 	    end else begin
 		buf_read_offset_next = buf_read_offset;
