@@ -24,22 +24,22 @@ module sobel_control
     // Clock and reset ports
     input                                       clk,
     input                                       reset,
-
+    
     // System-wide control signals
     input                                       go,
-
+    
     // Interface: Sobel Control -> Memory (input and output buffers)
     output  [IOBUF_ADDR_WIDTH-1:0]              sctl2srt_read_addr,                 // input buffer read address
     output  [IOBUF_ADDR_WIDTH-1:0]              sctl2swt_write_addr,                // output buffer write address
     output  [`NUM_SOBEL_ACCELERATORS-1:0]       sctl2swt_write_en,                  // output buffer write enable, per output pixel
-
+    
     // Interface: Sobel Control -> Sobel Image Row Registers
     output  [`SOBEL_ROW_OP_WIDTH-1:0]           sctl2srow_row_op,                   // Sobel row register command
-
+    
     // External command register signals
     input   [IMAGE_DIM_WIDTH-1:0]               stop2sctl_image_n_rows,             // number of rows in the input image data
     input   [IMAGE_DIM_WIDTH-1:0]               stop2sctl_image_n_cols,             // number of columns in the input image data
-
+    
     // External status register signals
     output  [STATUS_REG_WIDTH-1:0]              sctl2stop_status                    // status indicator, contains "done" bit, "error" bit, and accelerator's state
 );
@@ -143,7 +143,6 @@ dffre #(IOBUF_ADDR_WIDTH)               buf_write_offset_r (                    
 );
 
 
-
 /* *** *** *** YOUR CODE GOES BELOW THIS LINE *** *** *** */
 
 
@@ -179,44 +178,44 @@ endgenerate
 always @ (*) begin
     // Default behavior is to maintain the current state.
     state_next                                  = state;
-
+    
     case (state)
         STATE_WAIT: begin
             if (go) begin
                 state_next                      = STATE_LOADING_1;
-            end if (~go) begin
-                state_next                      = STATE_WAIT;
+	    end if (~go) begin
+		state_next 			= STATE_WAIT;
           end
         end
-
+        
         STATE_LOADING_1: begin
             if (go) begin
                 state_next                      = STATE_LOADING_2;
             end
         end
-
+        
         STATE_LOADING_2: begin
             if (go) begin
                 state_next                      = STATE_LOADING_3;
             end
         end
-
+        
         STATE_LOADING_3: begin
             if (go) begin
                 state_next                      = STATE_PROCESSING_CALC;
             end
         end
-
+        
         STATE_PROCESSING_CALC: begin
             if (go) begin
-                    // if we reach the last row to load and compute
-                    if ((row_counter + 'h1) >= (control_n_rows - 'h2))
-                            state_next = STATE_PROCESSING_LOADSS_LAST;
-                    else
-                            state_next = STATE_PROCESSING_LOADSS;
+		    // if we reach the last row to load and compute
+		    if ((row_counter + 'h1) >= (control_n_rows - 'h2))
+			    state_next = STATE_PROCESSING_LOADSS_LAST;
+		    else 
+			    state_next = STATE_PROCESSING_LOADSS;
             end
         end
-
+        
         STATE_PROCESSING_LOADSS: begin
             if (go) begin
                 // *** Next row loading state ***
@@ -224,7 +223,7 @@ always @ (*) begin
                 state_next                      = STATE_PROCESSING_CALC;
             end
         end
-
+        
         STATE_PROCESSING_CALC_LAST: begin
            if (go) begin
                 // is there enough space for another section of input
@@ -248,7 +247,7 @@ always @ (*) begin
                 state_next                      = STATE_WAIT;
             end
         end
-
+        
         STATE_ERROR: begin
             if (go) begin
                 // *** Error state ***
@@ -257,16 +256,16 @@ always @ (*) begin
                 state_next                      = STATE_ERROR;
             end
         end
-
+        
         default: begin
             if (go) begin
                 // *** Catch-all default ***
                 // In case of anything unpredicted, will cause an error.
                 state_next                      = STATE_ERROR;
-            end else begin
-                   state_next                   = STATE_WAIT;
+	    end else begin
+		   state_next 			= STATE_WAIT; 
             end
-       end
+       end   
     endcase
 end
 
@@ -279,58 +278,58 @@ end
 always @ (*) begin
     // What is the correct default behavior? Place your command here.
     row_op                                      = `SOBEL_ROW_OP_HOLD;
-
+    
     case (state)
         STATE_WAIT: begin
             // What happens in this state? Insert your code here. If nothing changes, you can remove this case completely.
             row_op                              = `SOBEL_ROW_OP_HOLD;
         end
-
+        
         STATE_LOADING_1: begin
             // What happens in this state? Insert your code here. If nothing changes, you can remove this case completely.
             row_op                              = `SOBEL_ROW_OP_SHIFT_ROW;
         end
-
+        
         STATE_LOADING_2: begin
             // What happens in this state? Insert your code here. If nothing changes, you can remove this case completely.
             row_op                              = `SOBEL_ROW_OP_SHIFT_ROW;
         end
-
+        
         STATE_LOADING_3: begin
             // What happens in this state? Insert your code here. If nothing changes, you can remove this case completely.
             row_op                              = `SOBEL_ROW_OP_SHIFT_ROW;
         end
-
+        
         STATE_PROCESSING_CALC: begin
             // What happens in this state? Insert your code here. If nothing changes, you can remove this case completely.
             row_op                              = `SOBEL_ROW_OP_HOLD;
         end
-
+        
         STATE_PROCESSING_LOADSS: begin
             // What happens in this state? Insert your code here. If nothing changes, you can remove this case completely.
             row_op                              = `SOBEL_ROW_OP_SHIFT_ROW;
         end
-
+        
         STATE_PROCESSING_CALC_LAST: begin
             // What happens in this state? Insert your code here. If nothing changes, you can remove this case completely.
             row_op                              = `SOBEL_ROW_OP_HOLD;
         end
-
+        
         STATE_PROCESSING_LOADSS_LAST: begin
             // What happens in this state? Insert your code here. If nothing changes, you can remove this case completely.
             row_op                              = `SOBEL_ROW_OP_SHIFT_ROW;
         end
-
+        
         STATE_PROCESSING_DONE: begin
             // What happens in this state? Insert your code here. If nothing changes, you can remove this case completely.
             row_op                              = `SOBEL_ROW_OP_HOLD;
         end
-
+        
         STATE_ERROR: begin
             // What happens in case of an error? Insert your code here. If nothing changes, you can remove this case completely.
             row_op                              = `SOBEL_ROW_OP_HOLD;
         end
-
+        
         default: begin
             // What happens in the default (unexpected) case? Insert your code here. If nothing changes, you can remove this case completely.
             row_op                              = `SOBEL_ROW_OP_HOLD;
@@ -346,60 +345,60 @@ end
 always @ (*) begin
     // Default behavior is to maintain the current row number.
     row_counter_next                            = row_counter;
-
+    
     case (state)
         STATE_WAIT: begin
             // What should the starting value be? Insert your code here.
-            if (go) begin
-                row_counter_next = 'h1;
+	    if (go) begin
+		row_counter_next = 'h1;
             end
         end
-
+        
         STATE_LOADING_1: begin
             // What happens in this state? Insert your code here. If nothing changes, you can remove this case completely.
             row_counter_next                    = row_counter;
         end
-
+        
         STATE_LOADING_2: begin
             // What happens in this state? Insert your code here. If nothing changes, you can remove this case completely.
             row_counter_next                    = row_counter;
         end
-
+        
         STATE_LOADING_3: begin
             // What happens in this state? Insert your code here. If nothing changes, you can remove this case completely.
             row_counter_next                    = row_counter;
         end
-
+        
         STATE_PROCESSING_CALC: begin
             // What happens in this state? Insert your code here. If nothing changes, you can remove this case completely.
             row_counter_next                    = row_counter + 'h1;
         end
-
+        
         STATE_PROCESSING_LOADSS: begin
             // What happens in this state? Insert your code here. If nothing changes, you can remove this case completely.
             row_counter_next                    = row_counter;
         end
-
+        
         STATE_PROCESSING_CALC_LAST: begin
             // I set to 1 because i use it for setting up buff_read_offset for
-            // another col 
-            row_counter_next                    = 'h1;
+	    // another col 
+	    row_counter_next                    = 'h1;
         end
-
+        
         STATE_PROCESSING_LOADSS_LAST: begin
-            row_counter_next = 1;
-        end
-
+	    row_counter_next = 1;
+	end
+        
         STATE_PROCESSING_DONE: begin
             // What happens in this state? Insert your code here. If nothing changes, you can remove this case completely.
             row_counter_next                    = 'h0;
         end
-
+        
         STATE_ERROR: begin
             // What happens in case of an error? Insert your code here. If nothing changes, you can remove this case completely.
             row_counter_next                    = 'h0;
         end
-
+        
         default: begin
             // What happens in the default (unexpected) case? Insert your code here. If nothing changes, you can remove this case completely.
             row_counter_next                    = 'h1;
@@ -416,64 +415,65 @@ end
 always @ (*) begin
     // Default behavior is to maintain the current column strip.
     col_strip_next                              = col_strip;
-
+    
     case (state)
         STATE_WAIT: begin
             // What should the starting value be? Insert your code here.
             col_strip_next                      = 'h1;
         end
-
+        
         STATE_LOADING_1: begin
             // What happens in this state? Insert your code here. If nothing changes, you can remove this case completely.
             col_strip_next                      = col_strip;
         end
-
+        
         STATE_LOADING_2: begin
             // What happens in this state? Insert your code here. If nothing changes, you can remove this case completely.
             col_strip_next                      = col_strip;
         end
-
+        
         STATE_LOADING_3: begin
             // What happens in this state? Insert your code here. If nothing changes, you can remove this case completely.
             col_strip_next                      = col_strip;
         end
-
+        
         STATE_PROCESSING_CALC: begin
             // What happens in this state? Insert your code here. If nothing changes, you can remove this case completely.
             col_strip_next                      = col_strip;
         end
-
+        
         STATE_PROCESSING_LOADSS: begin
             // What happens in this state? Insert your code here. If nothing changes, you can remove this case completely.
             col_strip_next                      = col_strip;
         end
-
+        
         STATE_PROCESSING_CALC_LAST: begin
             // What happens in this state? Insert your code here. If nothing changes, you can remove this case completely.
             col_strip_next                      = col_strip + `NUM_SOBEL_ACCELERATORS;
         end
-
+        
         STATE_PROCESSING_LOADSS_LAST: begin
             // What happens in this state? Insert your code here. If nothing changes, you can remove this case completely.
             col_strip_next                      = col_strip;
         end
-
+        
         STATE_PROCESSING_DONE: begin
             // What happens in this state? Insert your code here. If nothing changes, you can remove this case completely.
             col_strip_next                      = 'h0;
         end
-
+        
         STATE_ERROR: begin
             // What happens in case of an error? Insert your code here. If nothing changes, you can remove this case completely.
             col_strip_next                      = 'h0;
         end
-
+        
         default: begin
             // What happens in the default (unexpected) case? Insert your code here. If nothing changes, you can remove this case completely.
             col_strip_next                      = 'h1;
         end
     endcase
 end
+
 // *** Read address/offset calculation (combinational circuitry) ***
 // The job of this block is to calculate the correct read address to send to memory.
 // The read address currently being sent to memory is "buf_read_offset", so here we calculate what should be next.
@@ -484,70 +484,71 @@ end
 always @ (*) begin
     // What is the correct default behavior? Place your code here.
     buf_read_offset_next                        = buf_read_offset;
-
+    
     case (state)
         STATE_WAIT: begin
             if (go) begin
-                buf_read_offset_next            = control_n_cols + (col_strip - 'h1);
+                buf_read_offset_next            = control_n_cols;
             end if (~go) begin
-                buf_read_offset_next            = 'h0;
+		buf_read_offset_next 		= 'h0;
           end
         end
-
+        
         STATE_LOADING_1: begin
             buf_read_offset_next                = ((row_counter + 'h1) * control_n_cols) + (col_strip - 'h1);
         end
-
+        
         STATE_LOADING_2: begin
-            buf_read_offset_next                = buf_read_offset;
+            buf_read_offset_next		= buf_read_offset;
         end
-
+        
         STATE_LOADING_3: begin
             buf_read_offset_next                = ((row_counter + 'h2) * control_n_cols) + (col_strip - 'h1);
         end
-
+        
         STATE_PROCESSING_CALC: begin
             buf_read_offset_next                = buf_read_offset;
         end
-
+        
         STATE_PROCESSING_LOADSS: begin
-            buf_read_offset_next = ((row_counter + 'h2) * control_n_cols);
-        end
-
+	    buf_read_offset_next = ((row_counter + 'h2) * control_n_cols);
+	end
+        
         STATE_PROCESSING_CALC_LAST: begin
              // if there's still more columns to process, start loading 2
-             // into the registers, starting at row 0, so I just do col_strip
-             // + N
-             if ((col_strip + (`NUM_SOBEL_ACCELERATORS + `NUM_SOBEL_ACCELERATORS) - 'h1) < (control_n_cols - 'h2)) begin
+	     // into the registers, starting at row 0, so I just do col_strip
+	     // + N
+	     if ((col_strip + (`NUM_SOBEL_ACCELERATORS + `NUM_SOBEL_ACCELERATORS) - 'h1) < (control_n_cols - 'h2)) begin
                 buf_read_offset_next = control_n_cols +  (col_strip + `NUM_SOBEL_ACCELERATORS - 'h1);
-             end else begin
-                // we are officially done!
-                buf_read_offset_next = 'h0;
-             end
-        end
-
+	     end else begin
+		// we are officially done!
+		buf_read_offset_next = 'h0;
+	     end
+	end
+        
         STATE_PROCESSING_LOADSS_LAST: begin
-             // If there's still more columns to process, start loading 1
-             if ((col_strip + (`NUM_SOBEL_ACCELERATORS + `NUM_SOBEL_ACCELERATORS) - 'h1) < (control_n_cols - 'h2)) begin
+	     // If there's still more columns to process, start loading 1
+ 	     if ((col_strip + (`NUM_SOBEL_ACCELERATORS + `NUM_SOBEL_ACCELERATORS) - 'h1) < (control_n_cols - 'h2)) begin
                 buf_read_offset_next = (col_strip + `NUM_SOBEL_ACCELERATORS - 'h1);
-            end else begin
-                buf_read_offset_next = buf_read_offset;
+	    end else begin
+		buf_read_offset_next = buf_read_offset;
             end
         end
-
+        
         STATE_PROCESSING_DONE: begin
             buf_read_offset_next                = buf_read_offset;
         end
-
+        
         STATE_ERROR: begin
             buf_read_offset_next                = buf_read_offset;
         end
-
+        
         default: begin
             buf_read_offset_next                = buf_read_offset;
         end
     endcase
 end
+
 // *** Write address/offset calculation (combinational circuitry) ***
 // The job of this block is to calculate the correct write address to send to memory.
 // The write address currently being sent to memory is "buf_write_offset", so here we calculate what should be next.
@@ -558,49 +559,50 @@ end
 always @ (*) begin
     // What is the correct default behavior? Place your code here.
     buf_write_offset_next                       = buf_write_offset;
-
+    
     case (state)
         STATE_WAIT: begin
             buf_write_offset_next               = 'h0;
         end
-
+        
         STATE_LOADING_1: begin
             buf_write_offset_next               = buf_write_offset;
         end
-
+        
         STATE_LOADING_2: begin
             buf_write_offset_next               = buf_write_offset;
         end
-
+        
         STATE_LOADING_3: begin
             buf_write_offset_next               = ((row_counter - 'h1) * (control_n_cols - 'h2)) + (col_strip - 'h1);
         end
-
+        
         STATE_PROCESSING_CALC: begin
             buf_write_offset_next               = buf_write_offset;
         end
-
+        
         STATE_PROCESSING_LOADSS: begin
             buf_write_offset_next               = ((row_counter - 'h1) * (control_n_cols - 'h2)) + (col_strip - 'h1);
         end
-
+        
         STATE_PROCESSING_LOADSS_LAST: begin
             buf_write_offset_next               = ((row_counter - 'h1) * (control_n_cols - 'h2)) + (col_strip - 'h1);
         end
-
+        
         STATE_PROCESSING_DONE: begin
             buf_write_offset_next               = buf_write_offset;
         end
-
+        
         STATE_ERROR: begin
             buf_write_offset_next               = 'h0;
         end
-
+        
         default: begin
             buf_write_offset_next               = 'h0;
         end
     endcase
 end
+
 // *** Write enable generation (combinational circuitry) ***
 // The job of this block is to determine whether the data currently being sent to memory is valid.
 // The validity of output data depends on the current state; the accelerator cores are always producing data, but it is sometimes garbage and sometimes valid.
@@ -613,58 +615,58 @@ end
 always @ (*) begin
     // What is the correct default behavior? Place your code here.
     buf_write_en                                = 1'b0;
-
+    
     case (state)
         STATE_WAIT: begin
             // What happens in this state? Insert your code here. If nothing changes, you can remove this case completely.
             buf_write_en                        = 1'b0;
         end
-
+        
         STATE_LOADING_1: begin
             // What happens in this state? Insert your code here. If nothing changes, you can remove this case completely.
             buf_write_en                        = 1'b0;
         end
-
+        
         STATE_LOADING_2: begin
             // What happens in this state? Insert your code here. If nothing changes, you can remove this case completely.
             buf_write_en                        = 1'b0;
         end
-
+        
         STATE_LOADING_3: begin
             // What happens in this state? Insert your code here. If nothing changes, you can remove this case completely.
             buf_write_en                        = 1'b0;
         end
-
+        
         STATE_PROCESSING_CALC: begin
             // What happens in this state? Insert your code here. If nothing changes, you can remove this case completely.
             buf_write_en                        = 1'b1;
         end
-
+        
         STATE_PROCESSING_LOADSS: begin
             // What happens in this state? Insert your code here. If nothing changes, you can remove this case completely.
             buf_write_en                        = 1'b0;
         end
-
+        
         STATE_PROCESSING_CALC_LAST: begin
             // What happens in this state? Insert your code here. If nothing changes, you can remove this case completely.
             buf_write_en                        = 1'b1;
         end
-
+        
         STATE_PROCESSING_LOADSS_LAST: begin
             // What happens in this state? Insert your code here. If nothing changes, you can remove this case completely.
             buf_write_en                        = 1'b0;
         end
-
+        
         STATE_PROCESSING_DONE: begin
             // What happens in this state? Insert your code here. If nothing changes, you can remove this case completely.
             buf_write_en                        = 1'b0;
         end
-
+        
         STATE_ERROR: begin
             // What happens in case of an error? Insert your code here. If nothing changes, you can remove this case completely.
             buf_write_en                        = 1'b0;
         end
-
+        
         default: begin
             // What happens in the default (unexpected) case? Insert your code here. If nothing changes, you can remove this case completely.
             buf_write_en                        = 1'b0;
@@ -673,4 +675,3 @@ always @ (*) begin
 end
 
 endmodule
-                                 
