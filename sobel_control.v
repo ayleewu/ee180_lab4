@@ -211,7 +211,7 @@ always @ (*) begin
         STATE_PROCESSING_CALC: begin
             if (go) begin
                     // if we reach the last row to load and compute
-                    if ((row_counter + 1) >= (control_n_rows - 1))
+                if ((row_counter + 1) >= (control_n_rows - 'h2))
                             state_next = STATE_PROCESSING_LOADSS_LAST;
                     else
                             state_next = STATE_PROCESSING_LOADSS;
